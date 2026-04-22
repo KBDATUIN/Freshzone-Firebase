@@ -165,9 +165,19 @@ export default function App() {
 
   if (!authResolved) {
     return (
-      <div className="h-screen w-screen bg-[#0088CC] flex flex-col items-center justify-center text-white">
-        <div className="text-6xl font-display font-black italic animate-pulse tracking-tighter shadow-2xl">FRESHZONE</div>
-        <div className="mt-6 text-white/50 font-black uppercase tracking-widest text-[10px] bg-white/10 px-4 py-2 rounded-full backdrop-blur-md">Secure Monitoring Initializing</div>
+      <div style={{
+        height: '100vh', 
+        width: '100vw', 
+        backgroundColor: '#0088CC', 
+        display: 'flex', 
+        flexDirection: 'column',
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        color: 'white',
+        fontFamily: 'sans-serif'
+      }}>
+        <div style={{ fontSize: '3rem', fontWeight: '900', fontStyle: 'italic', marginBottom: '1rem' }}>FRESHZONE</div>
+        <div style={{ opacity: 0.6, fontSize: '0.8rem', letterSpacing: '0.1em' }}>INITIALIZING CAMPUS SECURITY...</div>
       </div>
     );
   }
@@ -245,8 +255,8 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen relative font-sans">
-      <SmokeOverlay />
+    <div className="min-h-screen relative font-sans overflow-x-hidden">
+      {/* SmokeOverlay moved inside content areas to prevent global blocking */}
       
       <AnimatePresence>
         {alertOpen && (
@@ -292,6 +302,7 @@ export default function App() {
       <main className="relative z-10">
         {!loggedInUser ? (
           <div className="flex flex-col items-center justify-center min-h-screen px-4">
+            <SmokeOverlay />
             <motion.div 
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -405,7 +416,8 @@ export default function App() {
             </header>
 
             {/* Main Content Area */}
-            <div className="flex-1 p-6 md:p-12 mt-16 md:mt-0 max-w-7xl mx-auto w-full">
+            <div className="flex-1 p-6 md:p-12 mt-16 md:mt-0 max-w-7xl mx-auto w-full relative">
+              <SmokeOverlay />
               <AnimatePresence mode="wait">
                 <motion.div 
                   key={currentPage}
