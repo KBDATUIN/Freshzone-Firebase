@@ -83,80 +83,74 @@ export default function App() {
   const alertAudio = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    try {
-      // Firebase Auth Listener
-      const unsubscribe = onAuthStateChanged(auth, (user) => {
-        console.log('Firebase Auth Resolved:', !!user);
-        if (user) {
-          setLoggedInUser({
-            id: user.uid,
-            full_name: user.displayName || 'User',
-            email: user.email || '',
-            photo_url: user.photoURL || undefined,
-            position: 'Staff / Teacher',
-            role: user.email === 'toxicg332@gmail.com' ? 'Admin' : 'Staff',
-            date_joined: '2026-04-22',
-            last_login: new Date().toISOString()
-          });
-          setCurrentPage('dashboard');
-        } else {
-          setLoggedInUser(null);
-          setCurrentPage('login');
-        }
-        setAuthResolved(true);
-      }, (err) => {
-        console.error('Auth error:', err);
-        setAuthResolved(true);
-      });
+    // Firebase Auth Listener
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      console.log('Firebase Auth Resolved:', !!user);
+      if (user) {
+        setLoggedInUser({
+          id: user.uid,
+          full_name: user.displayName || 'User',
+          email: user.email || '',
+          photo_url: user.photoURL || undefined,
+          position: 'Staff / Teacher',
+          role: user.email === 'toxicg332@gmail.com' ? 'Admin' : 'Staff',
+          date_joined: '2026-04-22',
+          last_login: new Date().toISOString()
+        });
+        setCurrentPage('dashboard');
+      } else {
+        setLoggedInUser(null);
+        setCurrentPage('login');
+      }
+      setAuthResolved(true);
+    }, (err) => {
+      console.error('Auth error:', err);
+      setAuthResolved(true);
+    });
 
-      // Force resolution limit
-      const timer = setTimeout(() => setAuthResolved(true), 4000);
+    // Force resolution limit
+    const timer = setTimeout(() => {
+      console.log('Force resolving auth state');
+      setAuthResolved(true);
+    }, 2000);
 
-      socket.on('vape_detected', (data) => {
-        setCurrentAlert(data);
-        setAlertOpen(true);
-        if (alertAudio.current) {
-          alertAudio.current.play().catch(e => console.log('Audio overlap ignored', e));
-        }
-      });
+    socket.on('vape_detected', (data) => {
+      setCurrentAlert(data);
+      setAlertOpen(true);
+      if (alertAudio.current) {
+        alertAudio.current.play().catch(e => console.log('Audio overlap ignored', e));
+      }
+    });
 
-      socket.on('reading_updated', (data) => {
-        setNodes(prev => prev.map(n => n.id === data.nodeId ? { ...n, ...data } : n));
-      });
+    socket.on('reading_updated', (data) => {
+      setNodes(prev => prev.map(n => n.id === data.nodeId ? { ...n, ...data } : n));
+    });
 
-      return () => {
-        clearTimeout(timer);
-        unsubscribe();
-        socket.off('vape_detected');
-        socket.off('reading_updated');
-      };
-    } catch (e) {
-      setRenderError(String(e));
-    }
+    return () => {
+      clearTimeout(timer);
+      unsubscribe();
+      socket.off('vape_detected');
+      socket.off('reading_updated');
+    };
   }, []);
 
   const handleLocalBypass = () => {
-    try {
-      const devUser: UserData = {
-        id: 'dev-user-001',
-        full_name: 'Developer (Local)',
-        email: 'dev@localhost',
-        position: 'Administrator',
-        role: 'Admin',
-        date_joined: new Date().toISOString(),
-        last_login: new Date().toISOString()
-      };
-      setLoggedInUser(devUser);
-      setCurrentPage('dashboard');
-    } catch (e) {
-      setRenderError(String(e));
-    }
+    setLoggedInUser({
+      id: 'dev-user-001',
+      full_name: 'Developer (Local)',
+      email: 'dev@localhost',
+      position: 'Administrator',
+      role: 'Admin',
+      date_joined: new Date().toISOString(),
+      last_login: new Date().toISOString()
+    });
+    setCurrentPage('dashboard');
   };
 
   if (renderError) {
     return (
       <div className="h-screen w-screen bg-red-600 text-white p-12 flex flex-col items-center justify-center">
-        <h1 className="text-4xl font-black mb-4">CRITICAL SYSTEM ERROR</h1>
+        <h1 className="text-4xl font-black mb-4">SYSTEM ERROR</h1>
         <pre className="bg-black/20 p-6 rounded-2xl w-full max-w-2xl overflow-auto">{renderError}</pre>
         <button onClick={() => window.location.reload()} className="mt-8 px-8 py-4 bg-white text-red-600 rounded-full font-black">RELOAD SYSTEM</button>
       </div>
@@ -177,7 +171,7 @@ export default function App() {
         fontFamily: 'sans-serif'
       }}>
         <div style={{ fontSize: '3rem', fontWeight: '900', fontStyle: 'italic', marginBottom: '1rem' }}>FRESHZONE</div>
-        <div style={{ opacity: 0.6, fontSize: '0.8rem', letterSpacing: '0.1em' }}>INITIALIZING CAMPUS SECURITY...</div>
+        <div style={{ opacity: 0.6, fontSize: '0.8rem', letterSpacing: '0.1em' }}>INITIALIZING SECURE SYSTEM...</div>
       </div>
     );
   }

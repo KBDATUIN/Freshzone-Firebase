@@ -5,6 +5,7 @@ import sqlite3 from 'sqlite3';
 import session from 'express-session';
 import bcrypt from 'bcryptjs';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
 
@@ -122,6 +123,8 @@ async function startServer() {
   });
 
   // API Routes
+  app.get('/health', (req, res) => res.send('FreshZone Server Online'));
+
   app.post('/api/auth/login', (req, res) => {
     const { email, password } = req.body;
     db.get('SELECT * FROM accounts WHERE email = ? AND is_active = 1', [email], async (err, user: any) => {
@@ -299,9 +302,24 @@ async function startServer() {
       appType: 'spa',
     });
     app.use(vite.middlewares);
+    
+    // Explicitly serve index.html for root if Vite middleware doesn't respond
+    app.use('*', async (req, res, next) => {
+      if (req.originalUrl.startsWith('/api')) return next();
+      try {
+        let template = fs.readFileSync(path.resolve(__dirname, 'index.html'), 'utf-8');
+        template = await vite.transformIndexHtml(req.originalUrl, template);
+        res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
+      } catch (e) {
+        next(e);
+      }
+    });
   } else {
-    app.use(express.static('dist'));
-    app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'dist/index.html')));
+    const distPath = path.resolve(__dirname, 'dist');
+    app.use(express.static(distPath));
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(distPath, 'index.html'));
+    });
   }
 
   httpServer.listen(PORT, '0.0.0.0', () => {
