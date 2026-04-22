@@ -15,9 +15,10 @@ async function startServer() {
   const app = express();
   const httpServer = createServer(app);
   const io = new Server(httpServer);
-  const PORT = 3000;
+  const PORT = process.env.PORT || 3000;
 
-  // Database setup
+  try {
+    // Database setup
   const db = new sqlite3.Database('./freshzone.db');
 
   db.serialize(async () => {
@@ -325,6 +326,11 @@ async function startServer() {
   httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`[DEPLOYED] FreshZone active on port ${PORT}`);
   });
+} catch (err) {
+  console.error("!!! FATAL STARTUP ERROR !!!");
+  console.error(err);
+  process.exit(1);
+}
 }
 
 startServer();
