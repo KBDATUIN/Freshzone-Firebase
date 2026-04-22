@@ -90,7 +90,7 @@ export default function App() {
           full_name: user.displayName || 'User',
           email: user.email || '',
           photo_url: user.photoURL || undefined,
-          position: 'Staff / Teacher', // Default
+          position: 'Staff / Teacher',
           role: user.email === 'toxicg332@gmail.com' ? 'Admin' : 'Staff',
           date_joined: '2026-04-22',
           last_login: new Date().toISOString()
@@ -102,6 +102,11 @@ export default function App() {
       }
       setLoading(false);
     });
+
+    // Fallback timer: If Firebase doesn't respond in 4 seconds, show login
+    const timeout = setTimeout(() => {
+      setLoading(false);
+    }, 4000);
 
     socket.on('vape_detected', (data) => {
       setCurrentAlert(data);
@@ -116,11 +121,25 @@ export default function App() {
     });
 
     return () => {
+      clearTimeout(timeout);
       unsubscribe();
       socket.off('vape_detected');
       socket.off('reading_updated');
     };
   }, []);
+
+  const handleLocalBypass = () => {
+    setLoggedInUser({
+      id: 'dev-user-001',
+      full_name: 'Developer (Local)',
+      email: 'dev@localhost',
+      position: 'Administrator',
+      role: 'Admin',
+      date_joined: new Date().toISOString(),
+      last_login: new Date().toISOString()
+    });
+    setCurrentPage('dashboard');
+  };
 
   useEffect(() => {
     if (darkMode) {
@@ -276,6 +295,15 @@ export default function App() {
                   <img src="https://www.google.com/favicon.ico" className="w-6 h-6" alt="Google" />
                   Continue with Google / Gmail
                 </button>
+
+                {(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && (
+                  <button 
+                    onClick={handleLocalBypass}
+                    className="w-full py-4 rounded-2xl bg-white/5 border border-white/20 text-white font-black text-sm uppercase tracking-widest hover:bg-white/10 transition-all"
+                  >
+                    Local Developer Login (Bypass)
+                  </button>
+                )}
                 
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/10" /></div>
