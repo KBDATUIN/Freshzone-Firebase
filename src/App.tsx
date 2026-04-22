@@ -75,71 +75,102 @@ export default function App() {
   const [nodes, setNodes] = useState<NodeStat[]>([]);
   const [alertOpen, setAlertOpen] = useState(false);
   const [currentAlert, setCurrentAlert] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [authResolved, setAuthResolved] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [croppingImage, setCroppingImage] = useState<string | null>(null);
+  const [renderError, setRenderError] = useState<string | null>(null);
 
   const alertAudio = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    // Firebase Auth Listener
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setLoggedInUser({
-          id: user.uid,
-          full_name: user.displayName || 'User',
-          email: user.email || '',
-          photo_url: user.photoURL || undefined,
-          position: 'Staff / Teacher',
-          role: user.email === 'toxicg332@gmail.com' ? 'Admin' : 'Staff',
-          date_joined: '2026-04-22',
-          last_login: new Date().toISOString()
-        });
-        setCurrentPage('dashboard');
-      } else {
-        setLoggedInUser(null);
-        setCurrentPage('login');
-      }
-      setLoading(false);
-    });
+    try {
+      // Firebase Auth Listener
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        console.log('Firebase Auth Resolved:', !!user);
+        if (user) {
+          setLoggedInUser({
+            id: user.uid,
+            full_name: user.displayName || 'User',
+            email: user.email || '',
+            photo_url: user.photoURL || undefined,
+            position: 'Staff / Teacher',
+            role: user.email === 'toxicg332@gmail.com' ? 'Admin' : 'Staff',
+            date_joined: '2026-04-22',
+            last_login: new Date().toISOString()
+          });
+          setCurrentPage('dashboard');
+        } else {
+          setLoggedInUser(null);
+          setCurrentPage('login');
+        }
+        setAuthResolved(true);
+      }, (err) => {
+        console.error('Auth error:', err);
+        setAuthResolved(true);
+      });
 
-    // Fallback timer: If Firebase doesn't respond in 4 seconds, show login
-    const timeout = setTimeout(() => {
-      setLoading(false);
-    }, 4000);
+      // Force resolution limit
+      const timer = setTimeout(() => setAuthResolved(true), 4000);
 
-    socket.on('vape_detected', (data) => {
-      setCurrentAlert(data);
-      setAlertOpen(true);
-      if (alertAudio.current) {
-        alertAudio.current.play().catch(e => console.log('Audio overlap ignored', e));
-      }
-    });
+      socket.on('vape_detected', (data) => {
+        setCurrentAlert(data);
+        setAlertOpen(true);
+        if (alertAudio.current) {
+          alertAudio.current.play().catch(e => console.log('Audio overlap ignored', e));
+        }
+      });
 
-    socket.on('reading_updated', (data) => {
-      setNodes(prev => prev.map(n => n.id === data.nodeId ? { ...n, ...data } : n));
-    });
+      socket.on('reading_updated', (data) => {
+        setNodes(prev => prev.map(n => n.id === data.nodeId ? { ...n, ...data } : n));
+      });
 
-    return () => {
-      clearTimeout(timeout);
-      unsubscribe();
-      socket.off('vape_detected');
-      socket.off('reading_updated');
-    };
+      return () => {
+        clearTimeout(timer);
+        unsubscribe();
+        socket.off('vape_detected');
+        socket.off('reading_updated');
+      };
+    } catch (e) {
+      setRenderError(String(e));
+    }
   }, []);
 
   const handleLocalBypass = () => {
-    setLoggedInUser({
-      id: 'dev-user-001',
-      full_name: 'Developer (Local)',
-      email: 'dev@localhost',
-      position: 'Administrator',
-      role: 'Admin',
-      date_joined: new Date().toISOString(),
-      last_login: new Date().toISOString()
-    });
-    setCurrentPage('dashboard');
+    try {
+      const devUser: UserData = {
+        id: 'dev-user-001',
+        full_name: 'Developer (Local)',
+        email: 'dev@localhost',
+        position: 'Administrator',
+        role: 'Admin',
+        date_joined: new Date().toISOString(),
+        last_login: new Date().toISOString()
+      };
+      setLoggedInUser(devUser);
+      setCurrentPage('dashboard');
+    } catch (e) {
+      setRenderError(String(e));
+    }
   };
+
+  if (renderError) {
+    return (
+      <div className="h-screen w-screen bg-red-600 text-white p-12 flex flex-col items-center justify-center">
+        <h1 className="text-4xl font-black mb-4">CRITICAL SYSTEM ERROR</h1>
+        <pre className="bg-black/20 p-6 rounded-2xl w-full max-w-2xl overflow-auto">{renderError}</pre>
+        <button onClick={() => window.location.reload()} className="mt-8 px-8 py-4 bg-white text-red-600 rounded-full font-black">RELOAD SYSTEM</button>
+      </div>
+    );
+  }
+
+  if (!authResolved) {
+    return (
+      <div className="h-screen w-screen bg-[#0088CC] flex flex-col items-center justify-center text-white">
+        <div className="text-6xl font-display font-black italic animate-pulse tracking-tighter shadow-2xl">FRESHZONE</div>
+        <div className="mt-6 text-white/50 font-black uppercase tracking-widest text-[10px] bg-white/10 px-4 py-2 rounded-full backdrop-blur-md">Secure Monitoring Initializing</div>
+      </div>
+    );
+  }
 
   useEffect(() => {
     if (darkMode) {
@@ -191,18 +222,6 @@ export default function App() {
   const handleExportCSV = () => {
     window.location.href = '/api/history/export';
   };
-
-  if (loading) return (
-    <div className="h-screen w-screen bg-brand-blue flex items-center justify-center">
-      <motion.div 
-        animate={{ scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }} 
-        transition={{ repeat: Infinity, duration: 2 }}
-        className="text-white font-display font-black text-4xl italic"
-      >
-        FRESHZONE
-      </motion.div>
-    </div>
-  );
 
   const NavItem = ({ id, label, icon: Icon }: { id: any, label: string, icon: any }) => {
     const active = currentPage === id;
@@ -683,11 +702,9 @@ export default function App() {
       </main>
 
       <footer className="fixed bottom-0 left-0 right-0 h-1 bg-white/20 z-[1001] pointer-events-none">
-        <motion.div 
-          className="h-full bg-brand-cyan"
-          initial={{ width: "0%" }}
-          animate={{ width: "100%" }}
-          transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+        <div 
+          className="h-full bg-brand-cyan transition-all duration-[10s] ease-linear"
+          style={{ width: '100%' }}
         />
       </footer>
     </div>
